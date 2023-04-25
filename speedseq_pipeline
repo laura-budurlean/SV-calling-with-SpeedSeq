@@ -1,0 +1,64 @@
+#!/bin/bash -l
+#SBATCH -N 1
+#SBATCH --ntasks-per-node=64
+#SBATCH -t 900:00:00
+#SBATCH --mem=160G
+#SBATCH --partition=????
+#SBATCH -o /output/for/out/file/%J.%N.out
+#SBATCH -e /output/for/err/file/%J.%N.err
+#SBATCH --job-name=speedseq
+##SBATCH --array=1-3 
+
+#A simple guide to SpeedSeq to get SNV, SVs, and CNVs and to generate normal, discordant, and splitter BAM files. SNV calling with Freebayes, SV calling with LUMPY DELLY is included.
+
+#Note: the array option in the header should correspond to the number of samples you are running. Remove if processing just one. Other SBATCH entries customize as needed for your system.
+
+#Have the following module available with the applicable versions most current at the time.
+
+module load lumpy-sv/0.2.3
+module load freebayes/1.2.0
+module load SpeedSeq
+module load delly/0.8.1
+
+
+#Set up some defaults for running:
+
+exclude="/path/to/hg38.excluded.chrM.others.bed"   #this can be downloaded from Delly Github.
+REF="/path/to/GRCh38_full_analysis_set_plus_decoy_hla.fa"    #reference file
+sampledir="/path/to/main/sample/folder/holding/all/individual/sample/folders"    #soft link or keep fastq files in individual folders with the sample names for easy processing.
+
+cd $sampledir
+
+
+#Step 1: BWA alignment
+  array=(SAMPLE1 SAMPLE2 SAMPLE3 ...etc)
+  sample=${array[$SLURM_ARRAY_TASK_ID-1]}
+
+  speedseq align -t 64 -o $sampledir/${sample}/${sample} -M 150 -T /specify/a/temp/directory/or/leave/blank -R "@RG\tID:${sample}\tSM:${sample}\tLB:lib1" $REF $sampledir/${sample}/${sample}_R1_001.fastq.gz $sampledir/${sample}/${sample}_R2_001.fastq.gz 
+
+
+#Step 2: SNV calling with freebayes
+  speedseq var -t 64 -o ${sample}.freebayes $REF $sampledir/${sample}/${sample}.bam
+        #Example if running stand alone: freebayes -f ${REF} /path/to/bamFile.bam > $sampledir/${sample}/${sample}.freebayes.vcf
+
+
+#Step 3: SV calling with Lumpy, which is included in SpeedSeq
+  speedseq sv -t 64 -B $sampledir/${sample}/${sample}.bam -S $sampledir/${sample}/${sample}.splitters.bam -D $$sampledir/${sample}/${sample}.discordants.bam -R $REF -o $sampledir/${sample}/${sample}.lumpy -x $exclude
+
+
+#Step4: DELLY SV calling
+
+  OUT_DIR="/gpfs/Scratch/ipm/lob5149/newsamples/Proc_Results_hg38"
+  exclude="/path/to/delly2-human.hg38.excl.tsv"    #Note: Make sure all columns have values filled in. Missing values will give an error when running Delly.
+  BAM="/gpfs/Scratch/ipm/lob5149/newsamples/Proc_Results_hg38"
+  #Example useage: delly call -t ${svType} -x ${exclude} -g ${REF} -q 20 -o output/directory/sample.delly.${svType}.bcf ${bamFile}
+
+#Note: Set individual options/parameters as needed
+  delly call -t DEL -x $exclude -g $REF -q 20 -o ${OUT_DIR}/${sample}/${sample}.delly.DEL.bcf $BAM/$sample/$sample.bam 
+  delly call -t DUP -x $exclude -g $REF -q 20 -o ${OUT_DIR}/${sample}/${sample}.delly.DUP.bcf $BAM/$sample/$sample.bam
+  delly call -t INV -x $exclude -g $REF -q 20 -o ${OUT_DIR}/${sample}/${sample}.delly.INV.bcf $BAM/$sample/$sample.bam
+  delly call -t BND -x $exclude -g $REF -q 20 -o ${OUT_DIR}/${sample}/${sample}.delly.BND.bcf $BAM/$sample/$sample.bam
+  delly call -t INS -x $exclude -g $REF -q 20 -o ${OUT_DIR}/${sample}/${sample}.delly.INS.bcf $BAM/$sample/$sample.bam
+
+
+
