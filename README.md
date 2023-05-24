@@ -4,6 +4,6 @@ A workflow for using SpeedSeq to align and call SVs from WGS data. A simple guid
 See speedseq_pipeline file for details.
 Additional information on SpeedSeq is available from the Hall lab at: https://github.com/hall-lab/speedseq and https://www.nature.com/articles/nmeth.3505
 
-#SpeedSeq pipeline overview:
+# SpeedSeq pipeline overview:
 ![speedseq](https://github.com/laura-budurlean/SV-calling-with-SpeedSeq/assets/30268603/c42cdbc2-a77c-46fb-873e-2d67a85bb485)
 Image reproduced from: https://www.nature.com/articles/nmeth.3505
