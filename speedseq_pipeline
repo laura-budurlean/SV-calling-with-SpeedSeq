@@ -7,7 +7,7 @@
 #SBATCH -o /output/for/out/file/%J.%N.out
 #SBATCH -e /output/for/err/file/%J.%N.err
 #SBATCH --job-name=speedseq
-##SBATCH --array=1-3 
+##SBATCH --array=1-3 #set to number of samples you need
 
 #A simple guide to SpeedSeq to get SNV, SVs, and CNVs and to generate normal, discordant, and splitter BAM files. SNV calling with Freebayes, SV calling with LUMPY DELLY is included.
 
@@ -48,10 +48,10 @@ cd $sampledir
 
 #Step4: DELLY SV calling
 
-  OUT_DIR="/gpfs/Scratch/ipm/lob5149/newsamples/Proc_Results_hg38"
+  OUT_DIR="/the/output/directory"
   exclude="/path/to/delly2-human.hg38.excl.tsv"    #Note: Make sure all columns have values filled in. Missing values will give an error when running Delly.
-  BAM="/gpfs/Scratch/ipm/lob5149/newsamples/Proc_Results_hg38"
-  #Example useage: delly call -t ${svType} -x ${exclude} -g ${REF} -q 20 -o output/directory/sample.delly.${svType}.bcf ${bamFile}
+  BAM="/path/to/your/bam"
+  #Example useage: delly call -t ${svType} -x ${exclude} -g ${REF} -q 20 -o /the/output/directory/sample.delly.${svType}.bcf ${bamFile}
 
 #Note: Set individual options/parameters as needed
   delly call -t DEL -x $exclude -g $REF -q 20 -o ${OUT_DIR}/${sample}/${sample}.delly.DEL.bcf $BAM/$sample/$sample.bam 
